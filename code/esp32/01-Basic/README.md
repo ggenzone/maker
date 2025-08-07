@@ -53,6 +53,7 @@ El proyecto implementa una interfaz gráfica básica con navegación por menús 
 │   ├── lcd_helper.c/.h     # Configuración LCD y touch
 │   ├── lvgl_helper.c/.h    # Configuración LVGL
 │   ├── gui.c/.h            # Interfaz gráfica
+│   ├── Kconfig             # Configuración de pines personalizable
 │   ├── idf_component.yml   # Dependencias managed components
 │   └── CMakeLists.txt      # Configuración componente main
 ├── CMakeLists.txt          # Configuración proyecto
@@ -81,6 +82,9 @@ dependencies:
 # Configurar el target (si es necesario)
 idf.py set-target esp32
 
+# Configurar pines y parámetros (opcional)
+idf.py menuconfig
+
 # Compilar el proyecto
 idf.py build
 
@@ -98,18 +102,41 @@ idf.py monitor
 
 ## 🔧 Configuración Personalizada
 
-### Cambiar Pines de Conexión
-Edita las definiciones en `main/lcd_helper.c`:
+### Configuración mediante menuconfig (Recomendado)
+El proyecto incluye un sistema de configuración Kconfig que permite personalizar los pines sin modificar el código:
+
+```bash
+idf.py menuconfig
+```
+
+Navega a: **"GMaker ILI9341 + XPT2046 Configuration"** donde puedes configurar:
+
+#### LCD Pins Configuration:
+- `GMAKER_LCD_CS_PIN` - LCD Chip Select (default: 5)
+- `GMAKER_LCD_DC_PIN` - LCD Data/Command (default: 4) 
+- `GMAKER_LCD_RST_PIN` - LCD Reset (default: 22)
+- `GMAKER_LCD_BACKLIGHT_PIN` - LCD Backlight (default: 15)
+
+#### Touch Pins Configuration:
+- `GMAKER_TOUCH_CS_PIN` - Touch Chip Select (default: 14)
+
+#### SPI Configuration:
+- `GMAKER_SPI_SCLK_PIN` - SPI Clock (default: 18)
+- `GMAKER_SPI_MOSI_PIN` - SPI MOSI (default: 23)
+- `GMAKER_SPI_MISO_PIN` - SPI MISO (default: 19)
+
+### Cambiar Pines Manualmente (Método Alternativo)
+Si prefieres editar directamente el código, modifica las definiciones en `main/lcd_helper.c`:
 
 ```c
-#define PIN_NUM_SCLK           18  // Clock SPI
-#define PIN_NUM_MOSI           23  // MOSI SPI
-#define PIN_NUM_MISO           19  // MISO SPI
-#define PIN_NUM_LCD_DC         4   // Data/Command LCD
-#define PIN_NUM_LCD_RST        22  // Reset LCD
-#define PIN_NUM_LCD_CS         5   // Chip Select LCD
-#define PIN_NUM_BK_LIGHT       15  // Backlight
-#define PIN_NUM_TOUCH_CS       14  // Chip Select Touch
+#define PIN_NUM_SCLK           CONFIG_GMAKER_SPI_SCLK_PIN
+#define PIN_NUM_MOSI           CONFIG_GMAKER_SPI_MOSI_PIN
+#define PIN_NUM_MISO           CONFIG_GMAKER_SPI_MISO_PIN
+#define PIN_NUM_LCD_DC         CONFIG_GMAKER_LCD_DC_PIN
+#define PIN_NUM_LCD_RST        CONFIG_GMAKER_LCD_RST_PIN
+#define PIN_NUM_LCD_CS         CONFIG_GMAKER_LCD_CS_PIN
+#define PIN_NUM_BK_LIGHT       CONFIG_GMAKER_LCD_BACKLIGHT_PIN
+#define PIN_NUM_TOUCH_CS       CONFIG_GMAKER_TOUCH_CS_PIN
 ```
 
 ### Ajustar Resolución o Orientación
@@ -128,8 +155,14 @@ Modifica `main/gui.c` para cambiar la apariencia y funcionalidad de los menús.
 ### `main.c`
 Punto de entrada de la aplicación. Inicializa la pantalla, LVGL y crea la interfaz gráfica.
 
+### `main/Kconfig`
+Archivo de configuración que permite personalizar los pines GPIO mediante `idf.py menuconfig`:
+- Configuración de pines LCD (CS, DC, RST, Backlight)
+- Configuración de pines Touch (CS)
+- Configuración de pines SPI (SCLK, MOSI, MISO)
+
 ### `lcd_helper.c`
-- Configuración del bus SPI
+- Configuración del bus SPI usando valores de Kconfig
 - Inicialización del driver ILI9341
 - Configuración del panel táctil XPT2046
 - Callbacks para LVGL

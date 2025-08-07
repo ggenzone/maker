@@ -31,14 +31,20 @@ static const char *TAG = "LCD_HELPER";
 #define LCD_PIXEL_CLOCK_HZ     (20 * 1000 * 1000)
 #define LCD_BK_LIGHT_ON_LEVEL  0
 #define LCD_BK_LIGHT_OFF_LEVEL !LCD_BK_LIGHT_ON_LEVEL
-#define PIN_NUM_SCLK           18
-#define PIN_NUM_MOSI           23
-#define PIN_NUM_MISO           19
-#define PIN_NUM_LCD_DC         4
-#define PIN_NUM_LCD_RST        22
-#define PIN_NUM_LCD_CS         5
-#define PIN_NUM_BK_LIGHT       15
-#define PIN_NUM_TOUCH_CS       14
+
+// The GPIO pins used for SPI communication
+#define GMAKER_SPI_SCLK_PIN           CONFIG_GMAKER_SPI_SCLK_PIN
+#define GMAKER_SPI_MOSI_PIN           CONFIG_GMAKER_SPI_MOSI_PIN
+#define GMAKER_SPI_MISO_PIN           CONFIG_GMAKER_SPI_MISO_PIN
+
+// The GPIO pins used for LCD control
+#define GMAKER_LCD_DC_PIN         CONFIG_GMAKER_LCD_DC_PIN
+#define GMAKER_LCD_RST_PIN        CONFIG_GMAKER_LCD_RST_PIN
+#define GMAKER_LCD_CS_PIN         CONFIG_GMAKER_LCD_CS_PIN
+#define GMAKER_LCD_BACKLIGHT_PIN  CONFIG_GMAKER_LCD_BACKLIGHT_PIN
+
+// The GPIO pin used for touch controller chip select
+#define GMAKER_TOUCH_CS_PIN       CONFIG_GMAKER_TOUCH_CS_PIN
 
 
 // The pixel number in horizontal and vertical
@@ -184,7 +190,7 @@ static void example_lvgl_touch_cb(lv_indev_t *indev, lv_indev_data_t *data)
 void ctouch_init(lv_display_t* display)
 {
     esp_lcd_panel_io_handle_t tp_io_handle = NULL;
-    esp_lcd_panel_io_spi_config_t tp_io_config = ESP_LCD_TOUCH_IO_SPI_XPT2046_CONFIG(PIN_NUM_TOUCH_CS);
+    esp_lcd_panel_io_spi_config_t tp_io_config = ESP_LCD_TOUCH_IO_SPI_XPT2046_CONFIG(GMAKER_TOUCH_CS_PIN);
 
     // Attach the TOUCH to the SPI bus
     ESP_ERROR_CHECK(esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)LCD_HOST, &tp_io_config, &tp_io_handle));
@@ -224,15 +230,15 @@ void lcd_init(void)
     ESP_LOGI(TAG, "Turn off LCD backlight");
     gpio_config_t bk_gpio_config = {
         .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = 1ULL << PIN_NUM_BK_LIGHT
+        .pin_bit_mask = 1ULL << GMAKER_LCD_BACKLIGHT_PIN
     };
     ESP_ERROR_CHECK(gpio_config(&bk_gpio_config));
 
     ESP_LOGI(TAG, "Initialize SPI bus");
     spi_bus_config_t buscfg = {
-        .sclk_io_num = PIN_NUM_SCLK,
-        .mosi_io_num = PIN_NUM_MOSI,
-        .miso_io_num = PIN_NUM_MISO,
+        .sclk_io_num = GMAKER_SPI_SCLK_PIN,
+        .mosi_io_num = GMAKER_SPI_MOSI_PIN,
+        .miso_io_num = GMAKER_SPI_MISO_PIN,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
         .max_transfer_sz = LCD_H_RES * 80 * sizeof(uint16_t),
@@ -242,8 +248,8 @@ void lcd_init(void)
     ESP_LOGI(TAG, "Install panel IO");
     esp_lcd_panel_io_handle_t io_handle = NULL;
     esp_lcd_panel_io_spi_config_t io_config = {
-        .dc_gpio_num = PIN_NUM_LCD_DC,
-        .cs_gpio_num = PIN_NUM_LCD_CS,
+        .dc_gpio_num = GMAKER_LCD_DC_PIN,
+        .cs_gpio_num = GMAKER_LCD_CS_PIN,
         .pclk_hz = LCD_PIXEL_CLOCK_HZ,
         .lcd_cmd_bits = LCD_CMD_BITS,
         .lcd_param_bits = LCD_PARAM_BITS,
@@ -255,7 +261,7 @@ void lcd_init(void)
 
     esp_lcd_panel_handle_t panel_handle = NULL;
     esp_lcd_panel_dev_config_t panel_config = {
-        .reset_gpio_num = PIN_NUM_LCD_RST,
+        .reset_gpio_num = GMAKER_LCD_RST_PIN,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
         .bits_per_pixel = 16
     };
@@ -272,7 +278,7 @@ void lcd_init(void)
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
 
     ESP_LOGI(TAG, "Turn on LCD backlight");
-    gpio_set_level(PIN_NUM_BK_LIGHT, LCD_BK_LIGHT_ON_LEVEL);    // Initialize the LCD display
+    gpio_set_level(GMAKER_LCD_BACKLIGHT_PIN, LCD_BK_LIGHT_ON_LEVEL);    // Initialize the LCD display
 
     if (panel_handle == NULL) {
         ESP_LOGE(TAG, "Failed to initialize LCD panel");
