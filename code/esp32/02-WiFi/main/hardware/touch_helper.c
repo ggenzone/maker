@@ -18,7 +18,7 @@ static esp_lcd_touch_handle_t touch_handle = NULL;
 static bool touch_initialized = false;
 
 // Private function declarations
-static void lvgl_touch_cb(lv_indev_t *indev, lv_indev_data_t *data);
+static void touch_read_cb(lv_indev_t *indev, lv_indev_data_t *data);
 
 esp_err_t lcd_touch_init(void) {
     ESP_LOGI(TAG, "Initialize touch controller XPT2046");
@@ -47,7 +47,7 @@ esp_err_t lcd_touch_init(void) {
     // Register touch input device in LVGL
     lv_indev_t *indev = lv_indev_create();
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
-    lv_indev_set_read_cb(indev, lvgl_touch_cb);
+    lv_indev_set_read_cb(indev, touch_read_cb);
     lv_indev_set_user_data(indev, touch_handle);
 
     touch_initialized = true;
@@ -94,26 +94,28 @@ esp_lcd_touch_handle_t touch_get_handle(void) {
 }
 
 // Private callback functions
-static void lvgl_touch_cb(lv_indev_t *indev, lv_indev_data_t *data) {
+static void touch_read_cb(lv_indev_t *indev, lv_indev_data_t *data) {
+    //esp_lcd_touch_handle_t *touch_handle = lv_indev_get_user_data(indev);
     esp_lcd_touch_handle_t tp = (esp_lcd_touch_handle_t)lv_indev_get_user_data(indev);
 
     assert(tp);
-
     uint16_t touchpad_x[1] = {0};
     uint16_t touchpad_y[1] = {0};
     uint8_t touchpad_cnt = 0;
 
-    /* Read touch controller data */
     esp_lcd_touch_read_data(tp);
 
-    /* Get coordinates */
     bool touchpad_pressed = esp_lcd_touch_get_coordinates(tp, touchpad_x, touchpad_y, NULL, &touchpad_cnt, 1);
 
     if (touchpad_pressed && touchpad_cnt > 0) {
-        data->point.x = touchpad_x[0];
-        data->point.y = touchpad_y[0];
-        data->state = LV_INDEV_STATE_PRESSED;
-        ESP_LOGI(TAG, "Touch: x=%d, y=%d", data->point.x, data->point.y);
+        if (!lcd_is_dimmed()) {
+            data->point.x = touchpad_x[0];
+            data->point.y = touchpad_y[0];
+            data->state = LV_INDEV_STATE_PRESSED;
+        }
+
+        // Reset auto-dim timer on touch
+        lcd_reset_autodim_timer();
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
     }

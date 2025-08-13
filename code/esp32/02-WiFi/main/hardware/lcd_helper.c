@@ -16,21 +16,9 @@
 #include "esp_log.h"
 #include "lvgl.h"
 #include "esp_lcd_ili9341.h"
+#include "storage/app_config.h"
 
 static const char *TAG = "LCD_HELPER";
-
-// GPIO pin assignments from Kconfig
-const int LCD_SCLK_PIN = CONFIG_GMAKER_SPI_SCLK_PIN;
-const int LCD_MOSI_PIN = CONFIG_GMAKER_SPI_MOSI_PIN;
-const int LCD_MISO_PIN = CONFIG_GMAKER_SPI_MISO_PIN;
-const int LCD_DC_PIN = CONFIG_GMAKER_LCD_DC_PIN;
-const int LCD_RST_PIN = CONFIG_GMAKER_LCD_RST_PIN;
-const int LCD_CS_PIN = CONFIG_GMAKER_LCD_CS_PIN;
-
-
-
-
-
 
 
 #define LCD_PIXEL_CLOCK_HZ     (20 * 1000 * 1000)
@@ -89,18 +77,37 @@ const int LCD_CS_PIN = CONFIG_GMAKER_LCD_CS_PIN;
 #define LEDC_DUTY_RES           LEDC_TIMER_13_BIT // 13-bit resolution
 #define LEDC_FREQUENCY          (4000) // 4 kHz
 
+// Auto-dim configuration
+#define AUTODIM_TIMEOUT_SEC     30      // 30 seconds of inactivity
+#define AUTODIM_TIMER_PERIOD    (AUTODIM_TIMEOUT_SEC * 1000000ULL)  // microseconds
+
+
 // Static variables
 static esp_lcd_panel_handle_t panel_handle = NULL;
 static esp_lcd_panel_io_handle_t io_handle = NULL;
 static uint8_t current_brightness = 80; // Initial brightness 80%
-static uint8_t saved_brightness = 80;
-static bool screen_is_dimmed = false;
 static bool lcd_initialized = false;
+
+
+static uint8_t normal_brightness = 80;  // Normal brightness level
+static uint8_t dim_brightness = 0;     // Dimmed brightness level
+static bool is_dimmed = false;          // Current dim state
+static bool autodim_enabled = true;     // Auto-dim feature enabled
+static esp_timer_handle_t autodim_timer = NULL;
+
 
 // Private function declarations
 static esp_err_t lcd_backlight_init(void);
 static void lvgl_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map);
 static void lvgl_tick_timer_cb(void *arg);
+
+// Auto-dim timer callback
+static void autodim_timer_callback(void *arg) {
+    if (autodim_enabled && !is_dimmed) {
+        ESP_LOGI(TAG, "Auto-dim timeout - dimming display");
+        lcd_trigger_autodim();
+    }
+}
 
 esp_err_t lcd_init(void) {
 
@@ -155,9 +162,6 @@ esp_err_t lcd_init(void) {
 
     // Initialize PWM for backlight
     ESP_ERROR_CHECK(lcd_backlight_init());
-    
-    // Set initial brightness
-    lcd_set_brightness(current_brightness);
 
     ESP_LOGI(TAG, "Initialize LVGL library");
     lv_init();
@@ -201,9 +205,32 @@ esp_err_t lcd_init(void) {
     // / *Register done callback * /
     // ESP_ERROR_CHECK(esp_lcd_panel_io_register_event_callbacks(io_handle, &cbs, display));
 
+
+    
+    // Initialize auto-dim timer
+    const esp_timer_create_args_t autodim_timer_args = {
+        .callback = &autodim_timer_callback,
+        .name = "autodim_timer"
+    };
+    
+    ESP_ERROR_CHECK(esp_timer_create(&autodim_timer_args, &autodim_timer));
+    
+    // Load auto-dim settings from config
+    autodim_enabled = app_config_get_auto_dim_enabled();
+    normal_brightness = app_config_get_lcd_brightness();
+    
+    // Start auto-dim timer if enabled
+    if (autodim_enabled) {
+        esp_timer_start_once(autodim_timer, AUTODIM_TIMER_PERIOD);
+        ESP_LOGI(TAG, "Auto-dim enabled, timer started");
+    }
+    
+    // Set initial brightness
+    lcd_set_brightness(current_brightness);
+
     lcd_initialized = true;
     ESP_LOGI(TAG, "LCD initialization complete");
-    
+
     return ESP_OK;
 }
 
@@ -213,7 +240,13 @@ esp_err_t lcd_deinit(void) {
     }
 
     ESP_LOGI(TAG, "Deinitializing LCD");
-    
+
+    if (autodim_enabled) {
+        esp_timer_stop(autodim_timer);
+        esp_timer_delete(autodim_timer);
+        autodim_timer = NULL;
+    }
+
     if (panel_handle) {
         esp_lcd_panel_del(panel_handle);
         panel_handle = NULL;
@@ -263,44 +296,103 @@ esp_err_t lcd_set_brightness(uint8_t brightness) {
         brightness = 100;
     }
     
-    // Invert logic: 100% brightness = low duty cycle
-    // 0% brightness = high duty cycle (8191)
+    // Invertir la lógica para backlight
     uint32_t duty = ((100 - brightness) * 8191) / 100;
     
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_CHANNEL, duty));
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
     
-    current_brightness = brightness;
+    // Update normal brightness if not currently dimmed
+    if (!is_dimmed) {
+        normal_brightness = brightness;
+    }
     
-    ESP_LOGD(TAG, "LCD brightness set to %d%% (inverted duty: %ld)", brightness, duty);
+    ESP_LOGI(TAG, "LCD brightness set to %d%% (duty: %ld)", brightness, duty);
     return ESP_OK;
 }
 
 uint8_t lcd_get_brightness(void) {
-    return current_brightness;
+    return is_dimmed ? dim_brightness : normal_brightness;
 }
 
-esp_err_t lcd_dim_screen(void) {
-    if (!screen_is_dimmed) {
-        saved_brightness = current_brightness;
-        lcd_set_brightness(5); // Very dim
-        screen_is_dimmed = true;
-        ESP_LOGD(TAG, "Screen dimmed to 5%%");
+esp_err_t lcd_set_autodim_enabled(bool enabled) {
+    autodim_enabled = enabled;
+    
+    if (enabled) {
+        // Start or restart timer
+        esp_timer_stop(autodim_timer);
+        esp_timer_start_once(autodim_timer, AUTODIM_TIMER_PERIOD);
+        ESP_LOGI(TAG, "Auto-dim enabled");
+    } else {
+        // Stop timer and restore from dim if needed
+        esp_timer_stop(autodim_timer);
+        if (is_dimmed) {
+            lcd_restore_from_autodim();
+        }
+        ESP_LOGI(TAG, "Auto-dim disabled");
     }
+    
     return ESP_OK;
 }
 
-esp_err_t lcd_restore_brightness(void) {
-    if (screen_is_dimmed) {
-        lcd_set_brightness(saved_brightness);
-        screen_is_dimmed = false;
-        ESP_LOGD(TAG, "Screen brightness restored to %d%%", saved_brightness);
+bool lcd_is_autodim_enabled(void) {
+    return autodim_enabled;
+}
+
+void lcd_reset_autodim_timer(void) {
+    if (!autodim_enabled) {
+        return;
     }
-    return ESP_OK;
+    
+    // Restore from dim if currently dimmed
+    if (is_dimmed) {
+        lcd_restore_from_autodim();
+    }
+    
+    // Restart timer
+    esp_timer_stop(autodim_timer);
+    esp_timer_start_once(autodim_timer, AUTODIM_TIMER_PERIOD);
+}
+
+esp_err_t lcd_trigger_autodim(void) {
+    if (is_dimmed) {
+        return ESP_OK; // Already dimmed
+    }
+    
+    // Save current brightness and apply dim brightness
+    //normal_brightness = app_config_get_lcd_brightness();
+    //dim_brightness = app_config_get_dim_brightness();
+    
+    is_dimmed = true;
+    esp_err_t ret = lcd_set_brightness(dim_brightness);
+    if (ret == ESP_OK) {
+
+        ESP_LOGI(TAG, "Display dimmed to %d%%", dim_brightness);
+    }
+    
+    return ret;
+}
+
+esp_err_t lcd_restore_from_autodim(void) {
+    if (!is_dimmed) {
+        return ESP_OK; // Not dimmed
+    }
+    
+    esp_err_t ret = lcd_set_brightness(normal_brightness);
+    if (ret == ESP_OK) {
+        is_dimmed = false;
+        ESP_LOGI(TAG, "Display restored to %d%%", normal_brightness);
+    }
+    
+    return ret;
+}
+
+bool lcd_is_dimmed(void) {
+    return is_dimmed;
 }
 
 esp_err_t lcd_screen_off(void) {
-    saved_brightness = current_brightness;
+    is_dimmed = true;
     lcd_set_brightness(0);
     ESP_LOGD(TAG, "Screen turned off");
     return ESP_OK;

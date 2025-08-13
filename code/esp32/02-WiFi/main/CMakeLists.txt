@@ -1,8 +1,6 @@
 idf_component_register(
     SRCS 
         "main.c"
-        "wifi.c" 
-        "app_state.c" 
         "lvgl_helper.c" 
         "gui/gui.c"
         "gui/gui_styles.c"
@@ -12,10 +10,16 @@ idf_component_register(
         "hardware/hardware.c"
         "hardware/lcd_helper.c"
         "hardware/touch_helper.c"
+        "storage/storage.c"
+        "storage/app_config.c"
+        "network/network.c"
+        "network/network_config.c"
     INCLUDE_DIRS 
         "."
         "gui"
         "hardware"
+        "storage"
+        "network"
     PRIV_REQUIRES 
         spi_flash 
     REQUIRES 

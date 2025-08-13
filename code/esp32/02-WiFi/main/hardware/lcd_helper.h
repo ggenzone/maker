@@ -31,16 +31,37 @@ esp_err_t lcd_set_brightness(uint8_t brightness);
 uint8_t lcd_get_brightness(void);
 
 /**
- * @brief Dim screen to low brightness (for power saving)
+ * @brief Enable/disable auto-dim functionality
+ * @param enabled True to enable auto-dim, false to disable
  * @return ESP_OK on success
  */
-esp_err_t lcd_dim_screen(void);
+esp_err_t lcd_set_autodim_enabled(bool enabled);
 
 /**
- * @brief Restore previous brightness level
- * @return ESP_OK on success
+ * @brief Check if auto-dim is enabled
+ * @return True if auto-dim is enabled
  */
-esp_err_t lcd_restore_brightness(void);
+bool lcd_is_autodim_enabled(void);
+
+/**
+ * @brief Reset the auto-dim timer (call on user interaction)
+ */
+void lcd_reset_autodim_timer(void);
+
+/**
+ * @brief Manually trigger auto-dim
+ */
+esp_err_t lcd_trigger_autodim(void);
+
+/**
+ * @brief Restore from auto-dim state
+ */
+esp_err_t lcd_restore_from_autodim(void);
+
+/**
+ * @brief Check if display is currently dimmed
+ */
+bool lcd_is_dimmed(void);
 
 /**
  * @brief Turn screen completely off
@@ -59,13 +80,5 @@ bool lcd_is_ready(void);
 #define LCD_WIDTH              240
 #define LCD_HEIGHT             320
 
-// GPIO pin definitions (will be read from Kconfig)
-extern const int LCD_SCLK_PIN;
-extern const int LCD_MOSI_PIN;
-extern const int LCD_MISO_PIN;
-extern const int LCD_DC_PIN;
-extern const int LCD_RST_PIN;
-extern const int LCD_CS_PIN;
-extern const int LCD_BACKLIGHT_PIN;
 
 #endif // LCD_HELPER_H
