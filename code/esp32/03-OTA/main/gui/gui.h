@@ -6,8 +6,7 @@
 // Include all GUI modules
 #include "gui_styles.h"
 #include "gui_common.h"
-#include "gui_main.h"
-#include "gui_settings.h"
+#include "navigation/gui_navigator.h"
 
 /**
  * @brief Initialize the entire GUI system
@@ -21,12 +20,11 @@ void gui_init(void);
  */
 void gui_update_wifi_status(bool connected);
 
-// Navigation states
-typedef enum {
-    GUI_SCREEN_MAIN,
-    GUI_SCREEN_SETTINGS,
-    GUI_SCREEN_GENERAL_SETTINGS,
-    GUI_SCREEN_WIFI_SETTINGS
-} gui_screen_t;
+// Convenience functions for main navigation (maintains backward compatibility)
+#define gui_show_main_menu()        gui_navigate_to(GUI_SCREEN_MAIN, NULL)
+#define gui_show_settings_menu()    gui_navigate_to(GUI_SCREEN_SETTINGS, NULL)
+#define gui_show_general_settings() gui_navigate_to(GUI_SCREEN_GENERAL, NULL)
+#define gui_show_wifi_settings()    gui_navigate_to(GUI_SCREEN_WIFI, NULL)
+#define gui_show_system_settings()  gui_navigate_to(GUI_SCREEN_SETTINGS_SYSTEM, NULL)
 
 #endif // GUI_H
