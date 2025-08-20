@@ -1,0 +1,32 @@
+idf_component_register(
+    SRCS 
+        "main.c"
+        "lvgl_helper.c" 
+        "gui/gui.c"
+        "gui/gui_styles.c"
+        "gui/gui_common.c"
+        "gui/gui_main.c"
+        "gui/gui_settings.c"
+        "hardware/hardware.c"
+        "hardware/lcd_helper.c"
+        "hardware/touch_helper.c"
+        "storage/storage.c"
+        "storage/app_config.c"
+        "network/network.c"
+        "network/network_config.c"
+        "network/ota_update.c"
+    INCLUDE_DIRS 
+        "."
+        "gui"
+        "hardware"
+        "storage"
+        "network"
+    PRIV_REQUIRES 
+        spi_flash 
+    REQUIRES 
+        esp_timer 
+        esp_wifi 
+        nvs_flash
+        esp_http_client
+        app_update
+)

@@ -1,0 +1,77 @@
+menu "GMaker Configuration"
+
+    menu "LCD Pins Configuration"
+        config GMAKER_LCD_CS_PIN
+            int "LCD Chip Select Pin"
+            default 5
+            range 0 39
+            help
+                GPIO pin for LCD Chip Select
+
+        config GMAKER_LCD_DC_PIN
+            int "LCD Data/Command Pin"
+            default 4
+            range 0 39
+
+        config GMAKER_LCD_RST_PIN
+            int "LCD Reset Pin"
+            default 22
+            range 0 39
+
+        config GMAKER_LCD_BACKLIGHT_PIN
+            int "LCD Backlight Pin"
+            default 15
+            range 0 39
+    endmenu
+
+    menu "Touch Pins Configuration"
+        config GMAKER_TOUCH_CS_PIN
+            int "Touch Chip Select Pin"
+            default 14
+            range 0 39
+    endmenu
+
+    menu "Buzzer Configuration"
+        config GMAKER_BUZZER_PIN
+            int "Buzzer GPIO Pin"
+            default 21
+            range 0 39
+            help
+                GPIO pin for Buzzer
+    endmenu
+
+    menu "SPI Configuration"
+        config GMAKER_SPI_SCLK_PIN
+            int "SPI Clock Pin"
+            default 18
+            range 0 39
+
+        config GMAKER_SPI_MOSI_PIN
+            int "SPI MOSI Pin"
+            default 23
+            range 0 39
+
+        config GMAKER_SPI_MISO_PIN
+            int "SPI MISO Pin"
+            default 19
+            range 0 39
+    endmenu
+
+    menu "WiFi Configuration"
+
+        config GMAKER_WIFI_SSID
+            string "WiFi SSID"
+            default "MiRed"
+
+        config GMAKER_WIFI_PASSWORD
+            string "WiFi Password"
+            default "MiPassword123"
+
+    endmenu
+
+    menu "OTA Configuration"        
+        config GMAKER_OTA_URL
+            string "OTA Update Server URL"
+            default "http://192.168.100.172:8000/03-OTA.bin"
+    endmenu
+endmenu
