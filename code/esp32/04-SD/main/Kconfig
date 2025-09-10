@@ -1,0 +1,28 @@
+menu "GMaker Configuration"
+    menu "SPI Configuration"
+        config GMAKER_SPI_MISO
+            int "SPI MISO Pin"
+            default 12
+            help
+                Set the GPIO pin number for the MISO (Master In Slave Out) connection to the SPI bus.
+
+        config GMAKER_SPI_MOSI
+            int "SPI MOSI Pin"
+            default 11
+            help
+                Set the GPIO pin number for the MOSI (Master Out Slave In) connection to the SPI bus.
+
+        config GMAKER_SPI_CLK
+            int "SPI CLK Pin"
+            default 13
+            help
+                Set the GPIO pin number for the CLK (Clock) connection to the SPI bus.
+    endmenu
+    menu "SD Card Configuration"
+        config GMAKER_SD_CS
+            int "SD Card CS Pin"
+            default 10
+            help
+                Set the GPIO pin number for the CS (Chip Select) connection to the SD card.
+    endmenu
+endmenu
