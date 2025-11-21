@@ -1,6 +1,6 @@
 # Proyectos de ESP32 con IDF
 
-## ILI9341 LCD + XPT2046
+## ILI9341 LCD + XPT2046 (LVGL)
 
 ```bash
 01-Basic  
