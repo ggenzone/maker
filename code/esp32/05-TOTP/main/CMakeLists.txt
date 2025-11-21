@@ -1,0 +1,29 @@
+idf_component_register(
+    SRCS 
+        "main.c"
+        "hardware/hardware.c"
+        "hardware/wifi_helper.c"
+        "network/server.c"
+        "storage/nvs_helper.c"
+        "totp/totp_storage.c"
+        "totp/totp_parser.c"
+        "totp/totp_engine.c"
+        "utils/base32.c"
+        "utils/ntp.c"
+    INCLUDE_DIRS 
+        "."
+        "hardware"
+        "network"
+        "storage"
+        "totp"
+        "utils"
+    EMBED_TXTFILES
+        "network/www/index.html"
+    REQUIRES 
+        esp_timer 
+        esp_wifi 
+        esp_http_server
+        nvs_flash
+        json
+        mbedtls
+)

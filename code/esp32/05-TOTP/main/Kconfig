@@ -1,0 +1,15 @@
+menu "GMaker Configuration"
+    menu "WiFi Configuration"
+        config GMAKER_WIFI_SSID
+            string "WiFi SSID"
+            default "your_ssid"
+            help
+                SSID (network name) for the WiFi network to connect to.
+
+        config GMAKER_WIFI_PASSWORD
+            string "WiFi Password"
+            default "your_password"
+            help
+                Password for the WiFi network.
+    endmenu
+endmenu

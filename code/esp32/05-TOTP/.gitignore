@@ -1,0 +1,28 @@
+# Directorios de compilación
+build/
+
+# Managed components
+managed_components/
+
+# Configuración local
+sdkconfig
+sdkconfig.old
+
+# Archivos binarios y temporales
+*.bin
+*.elf
+*.map
+
+# Tabla de particiones generada
+partition_table/
+
+# Archivos temporales de flasheo
+flash_project_args
+build/flash_project_args
+
+# Archivos de Python generados
+*.pyc
+__pycache__/
+
+# Configuración de Visual Studio Code
+.vscode/

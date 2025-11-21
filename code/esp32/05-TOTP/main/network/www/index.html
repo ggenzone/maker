@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 TOTP Authenticator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h2 {
+            color: #333;
+            font-size: 1.25rem;
+            margin-bottom: 16px;
+        }
+
+        .add-form input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 12px;
+            transition: border-color 0.3s;
+        }
+
+        .add-form input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            margin-top: 12px;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            width: auto;
+            padding: 10px 20px;
+            margin-top: 12px;
+        }
+
+        .services-list {
+            min-height: 100px;
+        }
+
+        .service-item {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .service-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .service-item:last-child {
+            border-bottom: none;
+        }
+
+        .service-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .service-account {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .code-view {
+            text-align: center;
+        }
+
+        .code-header {
+            margin-bottom: 24px;
+        }
+
+        .code-issuer {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .code-account {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .code-display {
+            font-size: 48px;
+            font-weight: 700;
+            color: #667eea;
+            letter-spacing: 8px;
+            margin: 32px 0;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+        }
+
+        .code-footer {
+            margin-top: 24px;
+        }
+
+        .time-remaining {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 1s linear;
+            border-radius: 3px;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #f39c12 0%, #e67e22 100%);
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .button-group .btn {
+            flex: 1;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .alert-error {
+            background: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+
+        .alert-success {
+            background: #efe;
+            color: #3c3;
+            border: 1px solid #cfc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 ESP32 TOTP</h1>
+        
+        <!-- Add Service Form -->
+        <div id="add-section" class="card">
+            <h2>Agregar Servicio</h2>
+            <div id="alert-container"></div>
+            <div class="add-form">
+                <input 
+                    type="text" 
+                    id="uri-input" 
+                    placeholder="otpauth://totp/Service:user@email.com?secret=XXXXX&issuer=Service"
+                    autocomplete="off"
+                >
+                <button class="btn" onclick="addService()">Agregar</button>
+            </div>
+        </div>
+
+        <!-- Services List -->
+        <div id="list-section" class="card">
+            <h2>Mis Servicios</h2>
+            <div id="services-list" class="services-list">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Cargando servicios...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Code View -->
+        <div id="code-section" class="card hidden">
+            <div class="code-view">
+                <div class="code-header">
+                    <div class="code-issuer" id="code-issuer">Service</div>
+                    <div class="code-account" id="code-account">user@email.com</div>
+                </div>
+
+                <div class="code-display" id="code-value">------</div>
+
+                <div class="code-footer">
+                    <div class="time-remaining" id="time-remaining">
+                        Actualizando en <strong id="seconds-left">30</strong> segundos
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress"></div>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn btn-secondary" onclick="backToList()">Volver</button>
+                        <button class="btn btn-danger" onclick="deleteService()">Eliminar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentServiceIndex = -1;
+        let codeInterval = null;
+        let services = [];
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadServices();
+        });
+
+        // Load services from API
+        async function loadServices() {
+            try {
+                const response = await fetch('/api/services');
+                if (!response.ok) throw new Error('Failed to load services');
+                
+                services = await response.json();
+                renderServicesList();
+            } catch (error) {
+                console.error('Error loading services:', error);
+                showError('Error al cargar los servicios');
+                document.getElementById('services-list').innerHTML = 
+                    '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Error al cargar los servicios</p></div>';
+            }
+        }
+
+        // Render services list
+        function renderServicesList() {
+            const listElement = document.getElementById('services-list');
+            
+            if (services.length === 0) {
+                listElement.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔑</div>
+                        <p>No hay servicios configurados</p>
+                        <p style="font-size: 12px; margin-top: 8px;">Agrega tu primer servicio arriba</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listElement.innerHTML = services.map((service, index) => `
+                <div class="service-item" onclick="viewCode(${index})">
+                    <div class="service-name">${escapeHtml(service.issuer || service.service_name)}</div>
+                    <div class="service-account">${escapeHtml(service.account)}</div>
+                </div>
+            `).join('');
+        }
+
+        // Add new service
+        async function addService() {
+            const uri = document.getElementById('uri-input').value.trim();
+            
+            if (!uri) {
+                showError('Por favor ingresa un URI válido');
+                return;
+            }
+
+            if (!uri.startsWith('otpauth://totp/')) {
+                showError('El URI debe comenzar con otpauth://totp/');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/services', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uri: uri })
+                });
+
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(error || 'Error al agregar servicio');
+                }
+
+                document.getElementById('uri-input').value = '';
+                showSuccess('Servicio agregado exitosamente');
+                await loadServices();
+            } catch (error) {
+                console.error('Error adding service:', error);
+                showError('Error al agregar el servicio: ' + error.message);
+            }
+        }
+
+        // View TOTP code
+        async function viewCode(index) {
+            currentServiceIndex = index;
+            const service = services[index];
+
+            // Update UI
+            document.getElementById('code-issuer').textContent = service.issuer || service.service_name;
+            document.getElementById('code-account').textContent = service.account;
+            
+            // Show code section, hide list
+            document.getElementById('add-section').classList.add('hidden');
+            document.getElementById('list-section').classList.add('hidden');
+            document.getElementById('code-section').classList.remove('hidden');
+
+            // Start updating code
+            await updateCode();
+            codeInterval = setInterval(updateCode, 1000);
+        }
+
+        // Update TOTP code display
+        async function updateCode() {
+            try {
+                const response = await fetch(`/api/code/${currentServiceIndex}`);
+                if (!response.ok) throw new Error('Failed to get code');
+
+                const data = await response.json();
+                
+                // Update code display
+                const codeStr = data.code.toString().padStart(6, '0');
+                document.getElementById('code-value').textContent = 
+                    codeStr.substring(0, 3) + ' ' + codeStr.substring(3);
+                
+                // Update time remaining
+                const remaining = data.remaining || 30;
+                document.getElementById('seconds-left').textContent = remaining;
+                
+                // Update progress bar
+                const progress = (remaining / 30) * 100;
+                const progressBar = document.getElementById('progress');
+                progressBar.style.width = progress + '%';
+                
+                // Change color based on time
+                progressBar.className = 'progress-fill';
+                if (remaining <= 5) {
+                    progressBar.classList.add('danger');
+                } else if (remaining <= 10) {
+                    progressBar.classList.add('warning');
+                }
+            } catch (error) {
+                console.error('Error updating code:', error);
+            }
+        }
+
+        // Back to list
+        function backToList() {
+            if (codeInterval) {
+                clearInterval(codeInterval);
+                codeInterval = null;
+            }
+
+            document.getElementById('add-section').classList.remove('hidden');
+            document.getElementById('list-section').classList.remove('hidden');
+            document.getElementById('code-section').classList.add('hidden');
+        }
+
+        // Delete service
+        async function deleteService() {
+            if (!confirm('¿Estás seguro de que quieres eliminar este servicio?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/services/${currentServiceIndex}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error('Failed to delete service');
+
+                showSuccess('Servicio eliminado');
+                backToList();
+                await loadServices();
+            } catch (error) {
+                console.error('Error deleting service:', error);
+                showError('Error al eliminar el servicio');
+            }
+        }
+
+        // Show alert messages
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            container.innerHTML = `<div class="alert alert-${type}">${escapeHtml(message)}</div>`;
+            setTimeout(() => container.innerHTML = '', 5000);
+        }
+
+        function showError(message) {
+            showAlert(message, 'error');
+        }
+
+        function showSuccess(message) {
+            showAlert(message, 'success');
+        }
+
+        // Utility: Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Handle Enter key in input
+        document.getElementById('uri-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addService();
+            }
+        });
+    </script>
+</body>
+</html>
