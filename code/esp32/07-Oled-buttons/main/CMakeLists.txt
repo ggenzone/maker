@@ -1,0 +1,14 @@
+idf_component_register(
+    SRCS 
+        "main.c"
+        "core/system_init.c"
+        "bus/i2c_helper.c"
+        "drivers/display/oled_helper.c"
+        "drivers/input/button_helper.c"
+    INCLUDE_DIRS 
+        "."
+        "core"
+        "bus"
+        "drivers/display"
+        "drivers/input"
+)

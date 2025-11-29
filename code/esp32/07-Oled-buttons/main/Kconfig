@@ -1,0 +1,15 @@
+menu "GMaker Configuration"
+    menu "I2C Configuration"
+    config GMAKER_I2C_SDA
+        int "I2C SDA Pin"
+        default 21
+        help
+            Set the GPIO pin number for the SDA (Serial Data) connection to the I2C bus.
+
+    config GMAKER_I2C_SCL
+        int "I2C SCL Pin"
+        default 22
+        help
+            Set the GPIO pin number for the SCL (Serial Clock) connection to the I2C bus.
+    endmenu
+endmenu
