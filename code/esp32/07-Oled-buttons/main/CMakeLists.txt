@@ -5,10 +5,12 @@ idf_component_register(
         "bus/i2c_helper.c"
         "drivers/display/oled_helper.c"
         "drivers/input/button_helper.c"
+        "app/tasks/button_task.c"
     INCLUDE_DIRS 
         "."
         "core"
         "bus"
         "drivers/display"
         "drivers/input"
+        "app/tasks"
 )

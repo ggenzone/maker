@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include "esp_err.h"
 #include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 
 // Definir los pines de los botones (ESP32-WROVER-E safe pins)
 #define BUTTON_1_PIN    GPIO_NUM_25
@@ -12,40 +14,72 @@
 #define BUTTON_3_PIN    GPIO_NUM_32
 #define BUTTON_4_PIN    GPIO_NUM_33
 
-
-// Callback type for button events
-typedef void (*button_callback_t)(uint8_t button_num);
+// Evento de botón crudo (sin procesar)
+typedef struct {
+    uint8_t button_num;     // 0-3 (índice interno)
+    TickType_t timestamp;   // Momento del evento
+} button_event_t;
 
 /**
- * @brief Initialize buttons with interrupts and debounce
+ * @brief Inicializa los GPIOs de los botones sin interrupciones (modo polling)
+ * 
+ * Configura los GPIOs pero no instala ISRs. Útil para lectura directa
+ * con button_helper_read() o para implementar polling manual.
+ * 
  * @return ESP_OK on success
  */
-esp_err_t button_init(void);
+esp_err_t button_helper_init(void);
 
 /**
- * @brief Deinitialize buttons
+ * @brief Inicializa los GPIOs de los botones con interrupciones
+ * 
+ * Configura los GPIOs e instala ISRs que envían eventos crudos a la cola.
+ * La cola debe ser creada y gestionada por la capa de aplicación.
+ * 
+ * @param event_queue Cola donde se enviarán los eventos crudos (debe ser != NULL)
+ * @return ESP_OK on success, ESP_ERR_INVALID_ARG si event_queue es NULL
+ */
+esp_err_t button_helper_init_isr(QueueHandle_t event_queue);
+
+/**
+ * @brief Desinicializa los botones
+ * 
+ * Remueve ISRs si fueron instaladas y resetea el estado interno.
+ * 
  * @return ESP_OK on success
  */
-esp_err_t button_deinit(void);
+esp_err_t button_helper_deinit(void);
 
 /**
- * @brief Check if buttons are ready
- * @return true if buttons are initialized
+ * @brief Verifica si los botones están inicializados
+ * 
+ * @return true si están inicializados (con o sin ISR)
  */
-bool button_is_ready(void);
+bool button_helper_is_ready(void);
 
 /**
- * @brief Read button state directly (bypasses interrupt system)
- * @param button_num Button number (1-4)
- * @return true if button is pressed
+ * @brief Lee el estado actual de un botón directamente del GPIO
+ * 
+ * Esta función no usa interrupciones ni debounce. Lee el estado
+ * directo del hardware. Útil para polling o verificación.
+ * 
+ * @param button_num Número de botón (1-4)
+ * @return true si está presionado (nivel bajo con pull-up)
  */
-bool button_read(uint8_t button_num);
+bool button_helper_read(uint8_t button_num);
 
 /**
- * @brief Register callback for button press events
- * @param callback Function to call when a button is pressed
- * @return ESP_OK on success
+ * @brief Obtiene el número total de botones configurados
+ * 
+ * @return Cantidad de botones (4 en esta configuración)
  */
-esp_err_t button_register_callback(button_callback_t callback);
+uint8_t button_helper_get_count(void);
+
+/**
+ * @brief Verifica si el driver está en modo ISR
+ * 
+ * @return true si se inicializó con button_helper_init_isr()
+ */
+bool button_helper_is_isr_mode(void);
 
 #endif // BUTTON_HELPER_H
