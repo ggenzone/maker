@@ -1,0 +1,35 @@
+# Build directories
+build/
+
+# Object files
+*.o
+*.obj
+
+# Executables
+*.elf
+*.out
+*.hex
+
+# Debug files
+*.map
+*.lst
+*.lss
+*.sym
+
+# VS Code
+.vscode/
+!.vscode/c_cpp_properties.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor backups
+*~
+*.swp
+*.swo
+*.bak
+
+# Temporary files
+*.tmp
+*.log
