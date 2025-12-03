@@ -89,3 +89,8 @@ El programa:
 - Compilación optimizada para depuración (`-Og -g`)
 - Flags de advertencia habilitados: `-Wall -Werror -Wshadow`
 
+
+## Referencias 
+
+[MSP430-GCC-OPENSOURCE Web](https://www.ti.com/tool/MSP430-GCC-OPENSOURCE)
+[GCC for MSP430™ Microcontrollers | Quick Start Guide](https://www.ti.com/lit/ml/slau591c/slau591c.pdf)
