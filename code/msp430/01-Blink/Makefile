@@ -14,6 +14,7 @@ LIB_PATHS= $(MSPGCC_LIB_PATH)
 CC = $(GCC_DIR)/msp430-elf-gcc
 GDB = $(GCC_DIR)/msp430-elf-gdb
 CPPCHECK = cppcheck
+CLANG_FORMAT = clang-format
 
 TARGET = $(BIN_PATH)/blink.elf
 
@@ -37,7 +38,7 @@ $(OBJ_PATH)/%.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 
-.PHONY: all clean flash cppcheck
+.PHONY: all clean flash cppcheck format
 
 all: $(TARGET)
 
@@ -54,3 +55,5 @@ cppcheck:
 	--suppress=checkersReport \
 	$(SOURCES)
     
+format:
+	@$(CLANG_FORMAT) -i $(SOURCES)
