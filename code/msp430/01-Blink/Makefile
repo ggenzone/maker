@@ -13,6 +13,7 @@ LIB_PATHS= $(MSPGCC_LIB_PATH)
 
 CC = $(GCC_DIR)/msp430-elf-gcc
 GDB = $(GCC_DIR)/msp430-elf-gdb
+CPPCHECK = cppcheck
 
 TARGET = $(BIN_PATH)/blink.elf
 
@@ -36,7 +37,7 @@ $(OBJ_PATH)/%.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 
-.PHONY: all clean
+.PHONY: all clean flash cppcheck
 
 all: $(TARGET)
 
@@ -45,3 +46,11 @@ clean:
 
 flash: $(TARGET)
 	mspdebug rf2500 "prog $(TARGET)"
+
+cppcheck:
+	@$(CPPCHECK) --quiet --enable=all --error-exitcode=1 \
+	--inline-suppr \
+	--suppress=missingIncludeSystem \
+	--suppress=checkersReport \
+	$(SOURCES)
+    

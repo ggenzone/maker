@@ -12,4 +12,6 @@ int main(void) {
         led_toggle();
         for(i=10000; i>0; i--);
     }
+
+    return 0;
 }
